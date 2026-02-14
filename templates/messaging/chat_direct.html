@@ -3,14 +3,25 @@
 
 {% block extra_css %}
 <style>
+    /* Alert Styles for Flash Messages */
+    .alert { padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500; animation: slideDown 0.3s ease-out; }
+    .alert-error { background: #ffebee; color: #c62828; border: 2px solid #ef5350; }
+    .alert-success { background: #e8f5e9; color: white; border: 2px solid #66bb6a; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
     .chat-container { max-width: 100vw; background: white; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
     .chat-header { background: linear-gradient(135deg, #ff6b35, #ff8c42); color: white; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; }
     .chat-avatar { width: 50px; height: 50px; border-radius: 50%; background: white; color: #ff6b35; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.3rem; }
     .chat-info h3 { margin: 0; font-size: 1.2rem; }
     .chat-info p { margin: 0.3rem 0 0 0; opacity: 0.9; font-size: 0.9rem; }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 2rem; background: #ffe8d8; }
+    /* Online Status */
+    .online-status { width: 10px; height: 10px; background: #4caf50; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .online-status.offline { background: #999; }
+    /* Hidden scrollbar */
+    .chat-messages::-webkit-scrollbar { display: none; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 2rem; background: #ffe8d8; -ms-overflow-style: none; scrollbar-width: none; }
     .message-group { margin-bottom: 1.5rem; }
-    .message-bubble { max-width: 60%; padding: 1rem 1.3rem; border-radius: 18px; margin-bottom: 0.5rem; word-wrap: break-word; }
+    .message-bubble { max-width: 60%; padding: 1rem 1.3rem; border-radius: 18px; margin-bottom: 0.5rem; position: relative; word-wrap: break-word; }
     .message-sent { background: #ff8c42; color: white; margin-left: auto; border-bottom-right-radius: 4px; }
     .message-received { background: white; color: #2c2c2c; margin-right: auto; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .message-time { font-size: 0.75rem; opacity: 0.7; margin-top: 0.3rem; }
@@ -20,6 +31,11 @@
     .message-media img, .message-media video { width: 100%; border-radius: 12px; }
     .message-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
     .btn-message-action { font-size: 0.75rem; padding: 0.3rem 0.6rem; background: rgba(255,255,255,0.3); border: none; border-radius: 4px; cursor: pointer; color: inherit; }
+
+    /* Typing Indicator */
+    .typing-indicator { padding: 0.5rem 2rem; color: #888; font-style: italic; font-size: 0.85rem; background: linear-gradient(135deg, #fff5f0 0%, #ffe8d8 100%); display: none; }
+    .typing-indicator.active { display: block; }
+
     .chat-input-area { padding: 1.5rem; background: white; border-top: 1px solid #e0e0e0; }
     .chat-input-form { display: flex; gap: 1rem; align-items: center; }
     .message-input { flex: 1; padding: 1rem; border: 2px solid #e0e0e0; border-radius: 25px; font-size: 1rem; resize: none; max-height: 100px; }
@@ -38,19 +54,26 @@
     .recording-time { font-size: 1rem; color: #ff4444; font-weight: 500; }
     .message-input-wrapper { display: flex; flex: 1; align-items: center; }
     .message-input-wrapper.hidden { display: none; }
+
+    /* Voice message player */
     .voice-message { display: flex; align-items: center; gap: 0.8rem; min-width: 200px; padding: 0.5rem; }
     .voice-play-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,0.3); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
-    .voice-waveform { flex: 1; height: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='30'%3E%3Crect x='2' y='8' width='3' height='14' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='7' y='5' width='3' height='20' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='12' y='10' width='3' height='10' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='17' y='3' width='3' height='24' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='22' y='8' width='3' height='14' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3C/svg%3E"); background-repeat: repeat-x; background-position: center; min-width: 100px; }
+    .voice-waveform { flex: 1; height: 30px; display: flex; align-items: center; gap: 2px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='30'%3E%3Crect x='2' y='8' width='3' height='14' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='7' y='5' width='3' height='20' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='12' y='10' width='3' height='10' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='17' y='3' width='3' height='24' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='22' y='8' width='3' height='14' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='27' y='6' width='3' height='18' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='32' y='11' width='3' height='8' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='37' y='4' width='3' height='22' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='42' y='9' width='3' height='12' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3Crect x='47' y='7' width='3' height='16' fill='rgba(255,255,255,0.6)' rx='1'/%3E%3C/svg%3E"); background-repeat: repeat-x; background-position: center; min-width: 100px; }
+    .voice-waveform .bar { width: 3px; background: rgba(255, 255, 255, 0.6); border-radius: 2px; }
     .voice-duration { font-size: 0.85rem; opacity: 0.8; }
+    .play-button { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.3); border: none; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; }
+
     .file-upload-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 1000; min-width: 400px; }
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
-    .video-preview-wrapper {display: none; position: fixed; bottom: 120px; right: 30px; width: 160px; height: 160px; border-radius: 50%; overflow: hidden; background: black; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 2000;}
-    .video-preview-wrapper.active {display: block;}
-    .video-preview-wrapper video {width: 100%; height: 100%; object-fit: cover;}
-    .video-timer {position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-weight: bold;}
-    .video-bubble-wrapper {position: relative;width: 180px;height: 180px;border-radius: 50%;overflow: hidden;cursor: pointer;background: black;}
-    .video-bubble {width: 100%;height: 100%;object-fit: cover;}
-    .video-play-overlay {position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);font-size: 40px;color: white;pointer-events: none;}
+
+    /* Video bubble styles */
+    .video-preview-wrapper { display: none; position: fixed; bottom: 120px; right: 30px; width: 160px; height: 160px; border-radius: 50%; overflow: hidden; background: black; box-shadow: 0 8px 25px rgba(0,0,0,0.3); z-index: 2000; }
+    .video-preview-wrapper.active { display: block; }
+    .video-preview-wrapper video { width: 100%; height: 100%; object-fit: cover; }
+    .video-timer { position: absolute; bottom: 10px; width: 100%; text-align: center; color: white; font-weight: bold; }
+    .video-bubble-wrapper { position: relative; width: 180px; height: 180px; border-radius: 50%; overflow: hidden; cursor: pointer; background: black; }
+    .video-bubble { width: 100%; height: 100%; object-fit: cover; }
+    .video-play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; color: white; pointer-events: none; }
 </style>
 {% endblock %}
 
@@ -60,22 +83,38 @@
         <div class="chat-avatar">{{ (contact.display_name or contact.username)[0].upper() }}</div>
         <div class="chat-info">
             <h3>{{ contact.display_name or contact.username }}</h3>
-            <p>@{{ contact.username }} • {{ contact.age_group or '' }}</p>
+            <p>
+                <span class="online-status offline" id="onlineStatus"></span>
+                <span id="statusText">@{{ contact.username }} • {{ contact.age_group or '' }}</span>
+            </p>
         </div>
         <div style="margin-left: auto;">
             <a href="{{ url_for('messaging.view_contacts') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; background-color: white !important; border-color: white !important; color: #ff6b35 !important;">Back</a>
         </div>
     </div>
 
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="padding: 1rem; background: #ffe8d8;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" id="flashAlert" style="margin: 0;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
     <div class="chat-messages" id="chatMessages">
         {% if messages %}
             {% for message in messages %}
-            <div class="message-group" style="display: flex; justify-content: {% if message.sender_id == current_user.id %}flex-end{% else %}flex-start{% endif %}">
+            <div class="message-group" id="message-{{ message.id }}" style="display: flex; justify-content: {% if message.sender_id == current_user.id %}flex-end{% else %}flex-start{% endif %}">
                 <div class="message-bubble {% if message.sender_id == current_user.id %}message-sent{% else %}message-received{% endif %}">
                     {% if message.message_type == 'text' %}
                         {{ message.content }}
                     {% elif message.message_type == 'image' %}
-                        <div class="message-media"><img src="{{ url_for('static', filename=message.file_path.replace('static/', '')) }}" alt="Image"></div>
+                        <div class="message-media"><img src="{{ url_for('static', filename=message.file_path.replace('static/', '').replace('\\', '/')) }}" alt="Image"></div>
                     {% elif message.message_type == 'video' %}
                         <div class="video-bubble-wrapper">
                             <video class="video-bubble" playsinline preload="metadata"
@@ -87,7 +126,7 @@
                         <div class="voice-message">
                             <button class="voice-play-btn" onclick="toggleAudio(this)">▶</button>
                             <div class="voice-waveform"></div>
-                            <audio src="{{ url_for('static', filename=message.file_path.replace('static/', '')) }}" style="display:none;"></audio>
+                            <audio src="{{ url_for('static', filename=message.file_path.replace('static/', '').replace('\\', '/')) }}" style="display:none;"></audio>
                             <span class="voice-duration">0:00</span>
                         </div>
                     {% endif %}
@@ -109,6 +148,11 @@
         {% else %}
             <p style="text-align: center; color: #999;">No messages yet. Start the conversation!</p>
         {% endif %}
+    </div>
+
+    <!-- Typing Indicator -->
+    <div class="typing-indicator" id="typingIndicator">
+        {{ contact.display_name or contact.username }} is typing...
     </div>
 
     <div class="chat-input-area">
@@ -135,6 +179,7 @@
     </div>
 </div>
 
+<!-- File Upload Modal -->
 <div class="modal-overlay" id="modalOverlay" onclick="hideFileUpload()"></div>
 <div class="file-upload-modal" id="fileUploadModal">
     <h3>Send Media</h3>
@@ -163,6 +208,7 @@
 
 {% block extra_js %}
 <script>
+    // ==================== DOM ELEMENTS ====================
     const chatMessages = document.getElementById('chatMessages');
     const messageInput = document.getElementById('messageInput');
     const voiceBtn = document.getElementById('voiceBtn');
@@ -170,8 +216,13 @@
     const textInputWrapper = document.getElementById('textInputWrapper');
     const recordingIndicator = document.getElementById('recordingIndicator');
     const recordingTime = document.getElementById('recordingTime');
+    const typingIndicator = document.getElementById('typingIndicator');
     const contactId = parseInt(document.getElementById('chatContainer').dataset.contactId);
+
     let mediaRecorder, audioChunks = [], recordingInterval, recordingSeconds = 0, isRecording = false;
+
+    
+    // ==================== VIDEO RECORDING ====================
     const videoBtn = document.getElementById('videoBtn');
     const videoPreviewWrapper = document.getElementById('videoPreviewWrapper');
     const videoPreview = document.getElementById('videoPreview');
@@ -194,37 +245,25 @@
 
     async function startVideoRecording() {
         if (isVideoRecording) return;
-
         try {
             videoStream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: "user" },
                 audio: true
             });
-
             videoPreview.srcObject = videoStream;
             videoPreviewWrapper.classList.add('active');
-
             videoRecorder = new MediaRecorder(videoStream);
             videoChunks = [];
-
-            videoRecorder.ondataavailable = e => {
-                if (e.data.size > 0) videoChunks.push(e.data);
-            };
-
+            videoRecorder.ondataavailable = function(e) { if (e.data.size > 0) videoChunks.push(e.data); };
             videoRecorder.onstop = sendVideoMessage;
-
             videoRecorder.start();
             isVideoRecording = true;
-
             videoSeconds = 0;
             videoTimer.textContent = "0:00";
-            videoInterval = setInterval(() => {
+            videoInterval = setInterval(function() {
                 videoSeconds++;
-                videoTimer.textContent =
-                    Math.floor(videoSeconds / 60) + ":" +
-                    String(videoSeconds % 60).padStart(2, '0');
+                videoTimer.textContent = Math.floor(videoSeconds / 60) + ":" + String(videoSeconds % 60).padStart(2, '0');
             }, 1000);
-
         } catch (err) {
             alert("Camera access denied.");
         }
@@ -232,49 +271,34 @@
 
     function stopVideoRecording() {
         if (!isVideoRecording) return;
-
         isVideoRecording = false;
         clearInterval(videoInterval);
-
         videoPreviewWrapper.classList.remove('active');
-
-        if (videoRecorder && videoRecorder.state !== "inactive") {
-            videoRecorder.stop();
-        }
-
-        if (videoStream) {
-            videoStream.getTracks().forEach(track => track.stop());
-        }
+        if (videoRecorder && videoRecorder.state !== "inactive") videoRecorder.stop();
+        if (videoStream) videoStream.getTracks().forEach(function(track) { track.stop(); });
     }
 
     function sendVideoMessage() {
         if (!videoChunks.length) return;
-
-        const blob = new Blob(videoChunks, { type: 'video/webm' });
-        const file = new File([blob], 'video_' + Date.now() + '.webm', {
-            type: 'video/webm'
-        });
-
-        const fd = new FormData();
+        var blob = new Blob(videoChunks, { type: 'video/webm' });
+        var file = new File([blob], 'video_' + Date.now() + '.webm', { type: 'video/webm' });
+        var fd = new FormData();
         fd.append('receiver_id', contactId);
         fd.append('message_type', 'video');
         fd.append('file', file);
-
-        const xhr = new XMLHttpRequest();
+        var xhr = new XMLHttpRequest();
         xhr.open('POST', '{{ url_for("messaging.send_message") }}', true);
-        xhr.onload = () => window.location.reload();
+        xhr.onload = function() { window.location.reload(); };
         xhr.send(fd);
-
         videoChunks = [];
     }
 
+    // Video bubble click to play
     document.addEventListener("click", function(e) {
-        const wrapper = e.target.closest(".video-bubble-wrapper");
+        var wrapper = e.target.closest(".video-bubble-wrapper");
         if (!wrapper) return;
-
-        const video = wrapper.querySelector("video");
-        const overlay = wrapper.querySelector(".video-play-overlay");
-
+        var video = wrapper.querySelector("video");
+        var overlay = wrapper.querySelector(".video-play-overlay");
         if (video.paused) {
             video.play();
             overlay.style.display = "none";
@@ -282,37 +306,29 @@
             video.pause();
             overlay.style.display = "block";
         }
-
-        video.onended = function() {
-            overlay.style.display = "block";
-        };
+        video.onended = function() { overlay.style.display = "block"; };
     });
 
-    // Send text message via hidden form
+    // ==================== TEXT MESSAGING ====================
+
     function sendTextMessage() {
-        const content = messageInput.value.trim();
+        var content = messageInput.value.trim();
         if (!content) return;
-        
-        // Create and submit a real form
-        const form = document.createElement('form');
+
+        var form = document.createElement('form');
         form.method = 'POST';
         form.action = '{{ url_for("messaging.send_message") }}';
         form.style.display = 'none';
-        
-        const fields = {
-            'receiver_id': contactId,
-            'message_type': 'text',
-            'content': content
-        };
-        
-        for (const [key, val] of Object.entries(fields)) {
-            const input = document.createElement('input');
+
+        var fields = { 'receiver_id': contactId, 'message_type': 'text', 'content': content };
+        for (var key in fields) {
+            var input = document.createElement('input');
             input.type = 'hidden';
             input.name = key;
-            input.value = val;
+            input.value = fields[key];
             form.appendChild(input);
         }
-        
+
         document.body.appendChild(form);
         form.submit();
     }
@@ -326,93 +342,212 @@
     });
 
     // Send button
-    document.getElementById('messageForm').addEventListener('submit', function(e) {
+    document.querySelector("form").addEventListener("submit", async function(e){
         e.preventDefault();
-        sendTextMessage();
+
+        const formData = new FormData(this);
+
+        const res = await fetch(this.action, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (data.status === "success") {
+            window.location.href = data.redirect;
+        }
     });
 
-    // Auto-refresh messages every 3 seconds
-    setInterval(function() {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', window.location.href, true);
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(xhr.responseText, 'text/html');
-                const newMessages = doc.getElementById('chatMessages');
-                if (newMessages) {
-                    const wasAtBottom = chatMessages.scrollTop + chatMessages.clientHeight >= chatMessages.scrollHeight - 50;
-                    chatMessages.innerHTML = newMessages.innerHTML;
-                    if (wasAtBottom) {
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }
-                }
-            }
-        };
-        xhr.send();
-    }, 3000);
-
-    function showFileUpload() { document.getElementById('modalOverlay').style.display='block'; document.getElementById('fileUploadModal').style.display='block'; }
-    function hideFileUpload() { document.getElementById('modalOverlay').style.display='none'; document.getElementById('fileUploadModal').style.display='none'; }
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // Voice recording
-    voiceBtn.addEventListener('click', function() { if (isRecording) stopVoiceRecording(); else startVoiceRecording(); });
     
+
+    // ==================== FILE UPLOAD MODAL ====================
+
+    function showFileUpload() {
+        document.getElementById('modalOverlay').style.display = 'block';
+        document.getElementById('fileUploadModal').style.display = 'block';
+    }
+
+    function hideFileUpload() {
+        document.getElementById('modalOverlay').style.display = 'none';
+        document.getElementById('fileUploadModal').style.display = 'none';
+    }
+
+    // ==================== SCROLL TO BOTTOM ====================
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    window.addEventListener('load', function() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    // ==================== FLASH MESSAGE AUTO-DISMISS ====================
+
+    var flashAlert = document.getElementById('flashAlert');
+    if (flashAlert) {
+        setTimeout(function() {
+            flashAlert.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(function() { flashAlert.remove(); }, 300);
+        }, 5000);
+    }
+
+    // ==================== VOICE RECORDING ====================
+
+    voiceBtn.addEventListener('click', function() {
+        if (isRecording) {
+            stopVoiceRecording();
+        } else {
+            startVoiceRecording();
+        }
+    });
+
     async function startVoiceRecording() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream); audioChunks = [];
-            mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
-            mediaRecorder.onstop = function() { stream.getTracks().forEach(t => t.stop()); if (audioChunks.length > 0 && recordingSeconds >= 1) sendVoiceMessage(); };
-            mediaRecorder.start(); isRecording = true;
-            voiceBtn.classList.add('recording'); voiceBtn.textContent = '⏹';
-            textInputWrapper.classList.add('hidden'); recordingIndicator.classList.add('active'); sendBtn.style.display = 'none';
-            recordingSeconds = 0; recordingTime.textContent = '0:00';
+            var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = function() {
+                stream.getTracks().forEach(function(track) { track.stop(); });
+                if (audioChunks.length > 0 && recordingSeconds >= 1) {
+                    sendVoiceMessage();
+                }
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+
+            // Update UI
+            voiceBtn.classList.add('recording');
+            voiceBtn.textContent = '⏹';
+            textInputWrapper.classList.add('hidden');
+            recordingIndicator.classList.add('active');
+            sendBtn.style.display = 'none';
+
+            // Start timer
+            recordingSeconds = 0;
+            recordingTime.textContent = '0:00';
             if (recordingInterval) clearInterval(recordingInterval);
-            recordingInterval = setInterval(function() { recordingSeconds++; recordingTime.textContent = Math.floor(recordingSeconds/60)+':'+String(recordingSeconds%60).padStart(2,'0'); }, 1000);
-        } catch(err) { alert('Could not access microphone.'); }
+            recordingInterval = setInterval(function() {
+                recordingSeconds++;
+                var mins = Math.floor(recordingSeconds / 60);
+                var secs = recordingSeconds % 60;
+                recordingTime.textContent = mins + ':' + String(secs).padStart(2, '0');
+            }, 1000);
+
+        } catch (err) {
+            console.error('Error accessing microphone:', err);
+            alert('Could not access microphone. Please allow microphone permission.');
+        }
     }
-    
+
     function stopVoiceRecording() {
-        if (!isRecording || !mediaRecorder) return; isRecording = false;
-        if (recordingInterval) { clearInterval(recordingInterval); recordingInterval = null; }
-        voiceBtn.classList.remove('recording'); voiceBtn.textContent = '🎤';
-        textInputWrapper.classList.remove('hidden'); recordingIndicator.classList.remove('active'); sendBtn.style.display = 'block';
-        if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        if (!isRecording || !mediaRecorder) return;
+
+        isRecording = false;
+
+        if (recordingInterval) {
+            clearInterval(recordingInterval);
+            recordingInterval = null;
+        }
+
+        voiceBtn.classList.remove('recording');
+        voiceBtn.textContent = '🎤';
+        textInputWrapper.classList.remove('hidden');
+        recordingIndicator.classList.remove('active');
+        sendBtn.style.display = 'block';
+
+        if (mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
     }
-    
+
     function sendVoiceMessage() {
-        if (!audioChunks.length) return;
-        const blob = new Blob(audioChunks, { type: 'audio/webm' });
-        const file = new File([blob], 'voice_'+Date.now()+'.webm', { type: 'audio/webm' });
-        const fd = new FormData();
-        fd.append('receiver_id', contactId); fd.append('message_type', 'voice'); fd.append('file', file); fd.append('content', 'Voice message');
-        
-        const xhr = new XMLHttpRequest();
+        if (audioChunks.length === 0) return;
+
+        var audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        var file = new File([audioBlob], 'voice_' + Date.now() + '.webm', { type: 'audio/webm' });
+
+        var formData = new FormData();
+        formData.append('receiver_id', contactId);
+        formData.append('message_type', 'voice');
+        formData.append('file', file);
+        formData.append('content', 'Voice message');
+
+        var xhr = new XMLHttpRequest();
         xhr.open('POST', '{{ url_for("messaging.send_message") }}', true);
         xhr.onload = function() { window.location.reload(); };
-        xhr.send(fd);
+        xhr.onerror = function() { alert('Failed to send voice message'); };
+        xhr.send(formData);
+
         audioChunks = [];
     }
-    
+
+    // ==================== AUDIO PLAYBACK ====================
+
     function toggleAudio(btn) {
-        const audio = btn.parentElement.querySelector('audio'), dur = btn.parentElement.querySelector('.voice-duration');
+        var audio = btn.parentElement.querySelector('audio');
+        var durationEl = btn.parentElement.querySelector('.voice-duration');
+
         if (audio.paused) {
-            document.querySelectorAll('.voice-message audio').forEach(a => { a.pause(); a.currentTime = 0; });
-            document.querySelectorAll('.voice-play-btn').forEach(b => { b.textContent = '▶'; });
-            audio.play(); btn.textContent = '⏸';
-            audio.ontimeupdate = function() { dur.textContent = Math.floor(audio.currentTime/60)+':'+String(Math.floor(audio.currentTime%60)).padStart(2,'0'); };
-            audio.onended = function() { btn.textContent = '▶'; };
-        } else { audio.pause(); btn.textContent = '▶'; }
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.voice-message audio').forEach(function(a) {
-            a.addEventListener('loadedmetadata', function() {
-                var d = a.parentElement.querySelector('.voice-duration');
-                d.textContent = Math.floor(a.duration/60)+':'+String(Math.floor(a.duration%60)).padStart(2,'0');
+            // Stop all other playing audios
+            document.querySelectorAll('.voice-message audio').forEach(function(a) {
+                a.pause();
+                a.currentTime = 0;
             });
+            document.querySelectorAll('.voice-play-btn').forEach(function(b) {
+                b.textContent = '▶';
+            });
+
+            audio.play();
+            btn.textContent = '⏸';
+
+            audio.ontimeupdate = function() {
+                var mins = Math.floor(audio.currentTime / 60);
+                var secs = Math.floor(audio.currentTime % 60);
+                durationEl.textContent = mins + ':' + String(secs).padStart(2, '0');
+            };
+
+            audio.onended = function() {
+                btn.textContent = '▶';
+                var mins = Math.floor(audio.duration / 60);
+                var secs = Math.floor(audio.duration % 60);
+                durationEl.textContent = mins + ':' + String(secs).padStart(2, '0');
+            };
+        } else {
+            audio.pause();
+            btn.textContent = '▶';
+        }
+    }
+
+    // Load duration for all voice messages on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.voice-message audio').forEach(function(audio) {
+            audio.addEventListener('loadedmetadata', function() {
+                var durationEl = audio.parentElement.querySelector('.voice-duration');
+                var mins = Math.floor(audio.duration / 60);
+                var secs = Math.floor(audio.duration % 60);
+                durationEl.textContent = mins + ':' + String(secs).padStart(2, '0');
+            });
+        });
+    });
+
+    // Generate waveform bars dynamically
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.voice-waveform[data-generate="true"]').forEach(function(waveform) {
+            for (var i = 0; i < 20; i++) {
+                var bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = (Math.random() * 15 + 10) + 'px';
+                waveform.appendChild(bar);
+            }
+            waveform.removeAttribute('data-generate');
         });
     });
 </script>
