@@ -11,11 +11,16 @@
 <div class="container py-5">
     <div class="profile-card feedback-card">
         <div class="feedback-header">
-            <h1 class="main-title mb-1">Feedback Form</h1>
-            <p class="text-muted">Share your thoughts with us. Your feedback helps us improve Genlink.</p>
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h1 class="main-title mb-1">{{ 'Edit Feedback' if editing else 'Feedback Form' }}</h1>
+                    <p class="text-muted">{{ 'Update your previously submitted feedback.' if editing else 'Share your thoughts with us. Your feedback helps us improve Genlink.' }}</p>
+                </div>
+                <a href="{{ url_for('auth.feedback_history') }}" class="btn btn-light profile-btn">View Past Feedback</a>
+            </div>
         </div>
 
-        <form id="feedbackForm" method="POST" action="{{ url_for('auth.feedback') }}" class="profile-form" style="max-width: 100%;" novalidate>
+        <form id="feedbackForm" method="POST" action="{{ action_url if action_url else url_for('auth.feedback') }}" class="profile-form" style="max-width: 100%;" novalidate>
             {% if error %}
                 <p class="auth-error-message">{{ error }}</p>
             {% endif %}
@@ -71,8 +76,13 @@
             </div>
 
             <div class="d-flex gap-2 justify-content-end feedback-actions">
-                <a href="{{ url_for('main.home') }}" class="btn btn-light profile-btn">Back to Home</a>
-                <button type="submit" class="btn btn-primary profile-btn">Submit</button>
+                {% if editing %}
+                    <a href="{{ url_for('auth.feedback_history') }}" class="btn btn-light profile-btn">Cancel</a>
+                    <button type="submit" class="btn btn-primary profile-btn">Save Changes</button>
+                {% else %}
+                    <a href="{{ url_for('main.home') }}" class="btn btn-light profile-btn">Back to Home</a>
+                    <button type="submit" class="btn btn-primary profile-btn">Submit</button>
+                {% endif %}
             </div>
         </form>
     </div>

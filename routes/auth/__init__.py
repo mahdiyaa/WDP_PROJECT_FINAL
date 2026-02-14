@@ -82,21 +82,27 @@ def feedback():
             return render_template(
                 'auth/feedbackform.html',
                 error='Please fill in all fields.',
-                form_data=request.form
+                form_data=request.form,
+                editing=False,
+                action_url=url_for('auth.feedback'),
             )
 
         if not is_valid_gmail(email):
             return render_template(
                 'auth/feedbackform.html',
                 error='Please enter a valid Gmail address ending with @gmail.com.',
-                form_data=request.form
+                form_data=request.form,
+                editing=False,
+                action_url=url_for('auth.feedback'),
             )
 
         if feedback_type not in {'Positive', 'Negative'}:
             return render_template(
                 'auth/feedbackform.html',
                 error='Please select a valid feedback type.',
-                form_data=request.form
+                form_data=request.form,
+                editing=False,
+                action_url=url_for('auth.feedback'),
             )
 
         execute_query(
@@ -111,7 +117,133 @@ def feedback():
         flash('Thank you! Your feedback has been submitted.', 'success')
         return redirect(url_for('main.home'))
 
-    return render_template('auth/feedbackform.html', form_data={})
+    return render_template(
+        'auth/feedbackform.html',
+        form_data={},
+        editing=False,
+        action_url=url_for('auth.feedback')
+    )
+
+
+@auth_bp.route('/feedback/history', methods=['GET'])
+@login_required
+def feedback_history():
+    from database import execute_query
+
+    feedback_entries = execute_query(
+        """
+        SELECT id, full_name, email, feedback_type, feedback_text
+        FROM feedback
+        WHERE user_id = %s
+        ORDER BY id DESC
+        """,
+        (current_user.id,),
+        fetch_all=True,
+    ) or []
+
+    return render_template('auth/feedback_history.html', feedback_entries=feedback_entries)
+
+
+@auth_bp.route('/feedback/<int:feedback_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_feedback(feedback_id):
+    from database import execute_query
+
+    feedback_entry = execute_query(
+        """
+        SELECT id, full_name, email, feedback_type, feedback_text
+        FROM feedback
+        WHERE id = %s AND user_id = %s
+        """,
+        (feedback_id, current_user.id),
+        fetch_one=True,
+    )
+
+    if not feedback_entry:
+        flash('Feedback entry not found.', 'error')
+        return redirect(url_for('auth.feedback_history'))
+
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        feedback_type = request.form.get('feedback_type', '').strip()
+        feedback_text = request.form.get('feedback_text', '').strip()
+
+        if not full_name or not email or not feedback_type or not feedback_text:
+            return render_template(
+                'auth/feedbackform.html',
+                error='Please fill in all fields.',
+                form_data=request.form,
+                editing=True,
+                action_url=url_for('auth.edit_feedback', feedback_id=feedback_id),
+                feedback_id=feedback_id,
+            )
+
+        if not is_valid_gmail(email):
+            return render_template(
+                'auth/feedbackform.html',
+                error='Please enter a valid Gmail address ending with @gmail.com.',
+                form_data=request.form,
+                editing=True,
+                action_url=url_for('auth.edit_feedback', feedback_id=feedback_id),
+                feedback_id=feedback_id,
+            )
+
+        if feedback_type not in {'Positive', 'Negative'}:
+            return render_template(
+                'auth/feedbackform.html',
+                error='Please select a valid feedback type.',
+                form_data=request.form,
+                editing=True,
+                action_url=url_for('auth.edit_feedback', feedback_id=feedback_id),
+                feedback_id=feedback_id,
+            )
+
+        execute_query(
+            """
+            UPDATE feedback
+            SET full_name = %s, email = %s, feedback_type = %s, feedback_text = %s
+            WHERE id = %s AND user_id = %s
+            """,
+            (full_name, email, feedback_type, feedback_text, feedback_id, current_user.id),
+            commit=True,
+        )
+
+        flash('Feedback updated successfully.', 'success')
+        return redirect(url_for('auth.feedback_history'))
+
+    return render_template(
+        'auth/feedbackform.html',
+        form_data=feedback_entry,
+        editing=True,
+        action_url=url_for('auth.edit_feedback', feedback_id=feedback_id),
+        feedback_id=feedback_id,
+    )
+
+
+@auth_bp.route('/feedback/<int:feedback_id>/delete', methods=['POST'])
+@login_required
+def delete_feedback(feedback_id):
+    from database import execute_query
+
+    feedback_entry = execute_query(
+        "SELECT id FROM feedback WHERE id = %s AND user_id = %s",
+        (feedback_id, current_user.id),
+        fetch_one=True,
+    )
+
+    if not feedback_entry:
+        flash('Feedback entry not found.', 'error')
+        return redirect(url_for('auth.feedback_history'))
+
+    execute_query(
+        "DELETE FROM feedback WHERE id = %s AND user_id = %s",
+        (feedback_id, current_user.id),
+        commit=True,
+    )
+
+    flash('Feedback deleted successfully.', 'success')
+    return redirect(url_for('auth.feedback_history'))
 
 
 @auth_bp.route('/feedback/retrieve-email', methods=['GET'])
