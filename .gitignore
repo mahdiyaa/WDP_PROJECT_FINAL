@@ -8,3 +8,12 @@ WDP_PROJECT_FINAL/__pycache__/
 # Local env backups - never commit
 .env.backup
 .env.*
+
+# Compiled Python
+__pycache__/
+*.py[cod]
+
+# Flask-Session filesystem stores - recreated at runtime by cachelib
+sessions/
+flask_session/
+flask_session1/
